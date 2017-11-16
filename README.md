@@ -79,3 +79,7 @@ classes = [
 `youtubeAlertLink` - Set to the URL you want the program to open on detection of class availability.
 
 `classes` - Store the classes to track in a Python dictionary. Change the values between the double quotes `"` to the right of the colon `:` on each line. Add more classes as needed.
+
+## Contact
+
+If you have any questions or requests, you can reach me at nfoo@usc.edu.
