@@ -2,6 +2,14 @@
 import sys
 sys.dont_write_bytecode = True
 
+###
+### Do not touch anything above!
+###
+
+###
+### Change the three variables below
+###
+
 term = 20181
 youtubeAlertLink = "https://www.youtube.com/watch?v=2HtiqkDpzSs"
 

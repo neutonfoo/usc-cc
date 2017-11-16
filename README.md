@@ -3,6 +3,10 @@ This script checks for availability of USC Classes and opens a website if availa
 
 SHA-256 Checksum: `db5b357e412bdb1c998ee947185477be525dedc79a137f81c99d33c59b0bd498`
 
+## Demo
+
+![USC Class Checker in action](demo.png "USC Class Checker in action")
+
 ## Do's and Don'ts
 
 * Do use it to check for availability of classes.
