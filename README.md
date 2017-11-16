@@ -1,6 +1,8 @@
 # USC Class Checker (Public)
 This script checks for availability of USC Classes and opens a website if availability is detected. The script is built to run headless in the Terminal and requires an active USC login to log into USC Web Registration.
 
+SHA-256 Checksum: `db5b357e412bdb1c998ee947185477be525dedc79a137f81c99d33c59b0bd498`
+
 ## Do's and Don'ts
 
 * Do use it to check for availability of classes.
@@ -43,7 +45,7 @@ Run the following command in Terminal. This assumes you are in the same director
 Conversely, you can drag and drop `uscClassChecker-1.0-public.py` into the Terminal window after `python`.
 
 ```console
-python uscClassChecker-1.0-public.py
+$ python uscClassChecker-1.0-public.py
 ```
 
 ### Variables
