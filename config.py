@@ -1,27 +1,25 @@
-# USC Class Checker 1.0 - Public Config File
-import sys
-sys.dont_write_bytecode = True
+# Core Variables
 
-###
-### Do not touch anything above!
-###
+# School term - Concatenate year with [1 Spring], [2 Summer], [3 Fall]
+term = 20191
 
-###
-### Change the three variables below
-###
+# Autocheckout - Dangerous, use with caution
+autocheckout = True
 
-term = 20181
-youtubeAlertLink = "https://www.youtube.com/watch?v=2HtiqkDpzSs"
+# Link to open if a class is detected as open
+availabilityAlertLink = 'https://www.youtube.com/watch?v=2HtiqkDpzSs'
 
+# Time (seconds) between checks
+interval = 30
+
+# Time (seconds) to wait before a TimeoutException is thrown
+timeout = 10
+
+# Classes list
 classes = [
-    {
-      "depCode": "EALC",
-      "classCode": "101",
-      "sectionNumber": "25601"
-    },
-    {
-      "depCode": "PHYS",
-      "classCode": "151",
-      "sectionNumber": "50392"
-    }
+	{
+		'class': 'BISC102',
+		'sections': ('13000', '13102'),
+		'checkout': True
+	}
 ]
