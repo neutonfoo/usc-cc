@@ -2,6 +2,22 @@
 
 # USC CC V2.0
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Below is old stuff
+
 # USC Class Checker (Public)
 This script checks for availability of USC Classes and opens a website if availability is detected. The script is built to run headless in the Terminal and requires an active USC login to log into USC Web Registration.
 
