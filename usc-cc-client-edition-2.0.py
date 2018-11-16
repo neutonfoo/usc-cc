@@ -110,7 +110,7 @@ def login():
 
 	# Confirm URL
 	if driver.current_url == 'https://my.usc.edu/':
-		print('Login succesful')
+		print('Login successful')
 	else:
 		print()
 		print('Login failed')
