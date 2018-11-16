@@ -7,7 +7,7 @@ term = 20191
 autocheckout = True
 
 # Link to open if a class is detected as open
-availabilityAlertLink = 'https://www.youtube.com/watch?v=2HtiqkDpzSs'
+availabilityAlertLink = 'https://www.youtube.com/watch?v=4pUc7SD0PmU'
 
 # Time (seconds) between checks
 interval = 30
