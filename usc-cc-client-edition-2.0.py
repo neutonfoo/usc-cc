@@ -261,8 +261,8 @@ def checkWebReg():
 							c['pages'][sectionIndex] += 1
 					processSection(c, sectionIndex)
 				processClass(c)
-			sleep(interval)
-			print()
+		sleep(interval)
+		print()
 
 def find_between(s, first, last):
 	try:
