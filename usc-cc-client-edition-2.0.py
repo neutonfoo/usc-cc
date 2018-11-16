@@ -34,7 +34,7 @@ def main():
 ╚██████╔╝███████║╚██████╗    ╚██████╗╚██████╗     ╚████╔╝ ███████╗██╗╚██████╔╝
  ╚═════╝ ╚══════╝ ╚═════╝     ╚═════╝ ╚═════╝      ╚═══╝  ╚══════╝╚═╝ ╚═════╝''')
 	print('USC Class Checker V2.0 (Client Edition)')
-	print('Developed by Neuton Foo | https://github.com/neutonfoo/usc-class-checker')
+	print('Developed by Neuton Foo | https://github.com/neutonfoo/usc-cc')
 	print()
 
 	# Initialize Driver
