@@ -13,6 +13,7 @@ import signal
 import re
 import getpass
 import webbrowser
+from pathlib import Path
 
 username = ''
 password = ''
@@ -37,7 +38,7 @@ def main():
 	print('Developed by Neuton Foo | https://github.com/neutonfoo/usc-cc')
 	print()
 
-# Initialize Driver
+	# Initialize Driver
 	driverType = ''
 	hasChromeDriver = False
 	hasGeckoDriver = False
@@ -51,6 +52,8 @@ def main():
 	if geckoDriverFile.is_file():
 		hasGeckoDriver = True
 		print('geckodriver placed in project directory')
+
+	print()
 
 	if hasChromeDriver:
 		# Chrome
@@ -73,7 +76,6 @@ def main():
 
 	driver.set_page_load_timeout(timeout)
 	print('Selenium initialized - \033[4m' + driverType + '\033[0m' + ' loaded')
-
 	# Regex to match class - department + class code
 	regex = re.compile('([A-Z]+)(\d+)')
 	# Prepare classes
@@ -98,7 +100,7 @@ def main():
 		c['availabilities'] = ['' for section in range(len(c['sections']))]
 
 		c.pop('class', None)
-	print('Loaded classes')
+	print('Prepared classes')
 	print()
 
 	# Get user authentication details
@@ -155,19 +157,19 @@ def attemptTry():
 		redirectToTerm()
 
 		if unschedule:
-			unselectCoursesFromMyCourseBin()
+			unscheduleNonRegisteredCourses()
 		elif autocheckout:
 			print('\033[1m' + 'Autocheckout detected' + '\033[0m')
 			print('For autocheckout to work, all your non-registered courses will need to be unscheduled from myCourseBin')
 			print()
-			print('\033[1m'  + ' * You will ' + '\033[4m' + 'not' + '\033[0m' + '\033[1m' + ' be unscheduled from courses you are currently registered in *' + '\033[0m')
+			print('\033[1m'  + ' * You will ' + '\033[4m' + 'not' + '\033[0m' + '\033[1m' + ' be unscheduled/dropped from courses you are currently registered in *' + '\033[0m')
 			print()
-			unscehduleOption = input('Unschedule all unregistered courses from myCourseBin? (Y/N): ')
+			unscheduleOption = input('Unschedule all non-registered courses from myCourseBin? (Y/N): ')
 			print()
 
-			if unscehduleOption == 'Y':
+			if unscheduleOption == 'Y':
 				unschedule = True
-				unselectCoursesFromMyCourseBin()
+				unscheduleNonRegisteredCourses()
 			else:
 				autocheckout = False
 				print('Autocheckout disabled for this session')
@@ -190,9 +192,9 @@ def attemptTry():
 		print()
 		attemptTry()
 
-def unselectCoursesFromMyCourseBin():
+def unscheduleNonRegisteredCourses():
 	global driver
-	print('Unsheduling all unregistered courses from myCourseBin')
+	print('Unsheduling all non-registered courses from myCourseBin')
 	print('Redirecting to myCourseBin')
 	driver.get('https://webreg.usc.edu/myCourseBin')
 	sleep(2)
@@ -208,7 +210,7 @@ def unselectCoursesFromMyCourseBin():
 	# Unschedules all Unregistered courses
 	for unscheduleButton in unscheduleButtons:
 		unscheduleButton.click()
-	print('Unregistered courses unscheduled')
+	print('Non-registered courses unscheduled')
 	print()
 
 def redirectToTerm():

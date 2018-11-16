@@ -18,8 +18,16 @@ timeout = 10
 # Classes list
 classes = [
 	{
-		'class': 'BISC102',
-		'sections': ('13000', '13102'),
-		'checkout': True
+		'class': 'ECON432',
+		'sections': ('26142',),
+		'checkout': False
+	}, {
+		'class': 'GESM131',
+		'sections': ('35442',),
+		'checkout': False
+	}, {
+		'class': 'MATH225',
+		'sections': ('39554',),
+		'checkout': False
 	}
 ]
