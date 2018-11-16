@@ -38,14 +38,41 @@ def main():
 	print()
 
 	# Initialize Driver
-	chrome_options = webdriver.ChromeOptions()
-	chrome_options.add_argument('--headless')
-	chrome_options.add_argument('--no-sandbox')
-	chrome_options.add_argument('--disable-setuid-sandbox')
-	driver = webdriver.Chrome(options = chrome_options)
+	driverType = ''
+	hasChromeDriver = False
+	hasGeckoDriver = False
+
+	chromeDriverFile = Path("./chromedriver")
+	if chromeDriverFile.is_file():
+		hasChromeDriver = True
+		print('chromedriver placed in project directory')
+
+	geckoDriverFile = Path("./geckodriver")
+	if geckoDriverFile.is_file():
+		hasGeckoDriver = True
+		print('geckodriver placed in project directory')
+
+	if hasChromeDriver:
+		# Chrome
+		chrome_options = webdriver.ChromeOptions()
+		chrome_options.add_argument('--headless')
+		driver = webdriver.Chrome(executable_path = './chromedriver', options = chrome_options)
+		driverType = 'chromedriver'
+	elif hasGeckoDriver:
+		# Firefox
+		firefox_options = webdriver.FirefoxOptions()
+		firefox_options.add_argument('--headless')
+		driver = webdriver.Firefox(executable_path = './geckodriver', options = firefox_options)
+		driverType = 'geckodriver'
+	else:
+		# Default to Chrome, but don't specify executable_path
+		chrome_options = webdriver.ChromeOptions()
+		chrome_options.add_argument('--headless')
+		driver = webdriver.Chrome(options = chrome_options)
+		driverType = 'chromedriver'
 
 	driver.set_page_load_timeout(timeout)
-	print('Selenium initialized - \033[4m' + 'chromedriver' + '\033[0m' + ' loaded')
+	print('Selenium initialized - \033[4m' + driverType + '\033[0m' + ' loaded')
 	# Regex to match class - department + class code
 	regex = re.compile('([A-Z]+)(\d+)')
 	# Prepare classes
