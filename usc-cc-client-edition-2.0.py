@@ -37,17 +37,17 @@ def main():
 	print('Developed by Neuton Foo | https://github.com/neutonfoo/usc-cc')
 	print()
 
-	# Initialize Driver
+# Initialize Driver
 	driverType = ''
 	hasChromeDriver = False
 	hasGeckoDriver = False
 
-	chromeDriverFile = Path("./chromedriver")
+	chromeDriverFile = Path('./chromedriver')
 	if chromeDriverFile.is_file():
 		hasChromeDriver = True
 		print('chromedriver placed in project directory')
 
-	geckoDriverFile = Path("./geckodriver")
+	geckoDriverFile = Path('./geckodriver')
 	if geckoDriverFile.is_file():
 		hasGeckoDriver = True
 		print('geckodriver placed in project directory')
@@ -73,6 +73,7 @@ def main():
 
 	driver.set_page_load_timeout(timeout)
 	print('Selenium initialized - \033[4m' + driverType + '\033[0m' + ' loaded')
+
 	# Regex to match class - department + class code
 	regex = re.compile('([A-Z]+)(\d+)')
 	# Prepare classes
