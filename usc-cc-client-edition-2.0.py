@@ -3,28 +3,38 @@
 from config import *
 
 from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 from time import sleep, time
 import datetime
 
+import argparse
 import signal
 import re
 import getpass
 import webbrowser
 from pathlib import Path
 
+fileAuthorization = False
 username = ''
 password = ''
 driver = None
 unschedule = False
 
+wait = None
+
+courseCountdown = 0
+
+parser = argparse.ArgumentParser(description = 'USC CC V2.0')
+parser.add_argument('-i', type = argparse.FileType('r'), help = 'provide file authorization - username on first line, password on second line')
+
 def main():
-	global username
-	global password
 	global classes
 	global driver
+	global wait
+	global courseCountdown
 
 	# Print app name
 	print()
@@ -43,39 +53,43 @@ def main():
 	hasChromeDriver = False
 	hasGeckoDriver = False
 
-	chromeDriverFile = Path('./chromedriver')
+	chromeDriverFile = Path(r'./chromedriver')
 	if chromeDriverFile.is_file():
 		hasChromeDriver = True
 		print('chromedriver placed in project directory')
 
-	geckoDriverFile = Path('./geckodriver')
+
+	geckoDriverFile = Path(r'./geckodriver')
 	if geckoDriverFile.is_file():
 		hasGeckoDriver = True
 		print('geckodriver placed in project directory')
-
-	print()
 
 	if hasChromeDriver:
 		# Chrome
 		chrome_options = webdriver.ChromeOptions()
 		chrome_options.add_argument('--headless')
-		driver = webdriver.Chrome(executable_path = './chromedriver', options = chrome_options)
+		driver = webdriver.Chrome(executable_path = r'./chromedriver', options = chrome_options)
 		driverType = 'chromedriver'
 	elif hasGeckoDriver:
 		# Firefox
 		firefox_options = webdriver.FirefoxOptions()
 		firefox_options.add_argument('--headless')
-		driver = webdriver.Firefox(executable_path = './geckodriver', options = firefox_options)
+		driver = webdriver.Firefox(executable_path = r'./geckodriver', options = firefox_options)
 		driverType = 'geckodriver'
 	else:
+		print('Please place either chromedriver or geckodriver into this directory')
+		handleQuit()
 		# Default to Chrome, but don't specify executable_path
-		chrome_options = webdriver.ChromeOptions()
-		chrome_options.add_argument('--headless')
-		driver = webdriver.Chrome(options = chrome_options)
-		driverType = 'chromedriver'
+		# chrome_options = webdriver.ChromeOptions()
+		# chrome_options.add_argument('--headless')
+		# driver = webdriver.Chrome(options = chrome_options)
+		# driverType = 'chromedriver'
 
 	driver.set_page_load_timeout(timeout)
+	wait = WebDriverWait(driver, timeout)
+
 	print('Selenium initialized - \033[4m' + driverType + '\033[0m' + ' loaded')
+
 	# Regex to match class - department + class code
 	regex = re.compile('([A-Z]+)(\d+)')
 	# Prepare classes
@@ -100,11 +114,15 @@ def main():
 		c['availabilities'] = ['' for section in range(len(c['sections']))]
 
 		c.pop('class', None)
+	courseCountdown = len(classes)
 	print('Prepared classes')
 	print()
 
 	# Get user authentication details
-	getUSCID()
+	if fileAuthorization:
+		attemptTry()
+	else:
+		getUSCID()
 
 def getUSCID():
 	global username
@@ -115,38 +133,6 @@ def getUSCID():
 	password = getpass.getpass('Password: ')
 	print()
 	attemptTry()
-
-def login():
-	global username
-	global password
-	global driver
-
-	# Redirect to USC Shibboleth Login page
-	print('Opening connection to USC Shibboleth')
-	driver.get('https://my.usc.edu')
-	sleep(3)
-
-	# If session restored to myUSC, just return
-	if driver.current_url == 'https://my.usc.edu/':
-		print('Previous session restored')
-		return
-
-	# Login to USC Shibboleth
-	print('Logging into USC Shibboleth as \033[4m' + username + '\033[0m')
-	driver.find_element_by_name('j_username').send_keys(username)
-	driver.find_element_by_name('j_password').send_keys(password)
-	driver.find_element_by_name('_eventId_proceed').click()
-	sleep(3)
-
-	# Confirm URL
-	if driver.current_url == 'https://my.usc.edu/':
-		print('Login successful')
-	else:
-		print()
-		print('Login failed')
-		print('Please verify your login information')
-		print()
-		getUSCID()
 
 def attemptTry():
 	global unschedule
@@ -192,30 +178,36 @@ def attemptTry():
 		print()
 		attemptTry()
 
-def unscheduleNonRegisteredCourses():
-	global driver
-	print('Unsheduling all non-registered courses from myCourseBin')
-	print('Redirecting to myCourseBin')
-	driver.get('https://webreg.usc.edu/myCourseBin')
-	sleep(2)
+def login():
+	# Redirect to USC Shibboleth Login page
+	print('Opening connection to USC Shibboleth')
+	driver.get('https://my.usc.edu')
 
-	print('Expanding all courses')
-	expandAllButton = driver.find_element_by_id('expandAll')
-	expandAllButton.click()
-	sleep(1)
+	# If session restored to myUSC, just return
+	if driver.current_url == 'https://my.usc.edu/':
+		print('Previous session restored')
+		return
 
-	unscheduleButtons = driver.find_elements_by_xpath('//a[text()="Unschedule"][following-sibling::a[text()="Register"]][ancestor-or-self::div[contains(@class, "schUnschRmv") and not(contains(@style, "display: none;"))]]')
+	# Login to USC Shibboleth
+	print('Logging into USC Shibboleth as \033[4m' + username + '\033[0m')
+	driver.find_element_by_name('j_username').send_keys(username)
+	driver.find_element_by_name('j_password').send_keys(password)
+	driver.find_element_by_name('_eventId_proceed').click()
 
-	print('Unscheduling ' + str(len(unscheduleButtons)) + ' courses')
-	# Unschedules all Unregistered courses
-	for unscheduleButton in unscheduleButtons:
-		unscheduleButton.click()
-	print('Non-registered courses unscheduled')
-	print()
+	# Just need to wait for the page to reload - so choose body tag
+	wait.until(lambda d: d.find_element_by_css_selector('html'))
+
+	# Confirm URL
+	if driver.current_url == 'https://my.usc.edu/':
+		print('Login successful')
+	else:
+		print()
+		print('Login failed')
+		print('Please verify your login information')
+		print()
+		getUSCID()
 
 def redirectToTerm():
-	global driver
-	global term
 	# Redirect to USC Web Registration
 	print('Redirecting to USC Web Registration')
 	driver.get('https://my.usc.edu/portal/oasis/webregbridge.php')
@@ -225,91 +217,103 @@ def redirectToTerm():
 	driver.get('https://webreg.usc.edu/Terms/termSelect?term=' + str(term))
 	print()
 
+def unscheduleNonRegisteredCourses():
+	print('Unsheduling all non-registered courses from myCourseBin')
+	print('Redirecting to myCourseBin')
+
+	driver.get('https://webreg.usc.edu/myCourseBin')
+
+	print('Expanding all courses')
+	driver.find_element_by_id('expandAll').click()
+
+	unscheduleButtons = driver.find_elements_by_xpath('//a[text()="Unschedule"][following-sibling::a[text()="Register"]][ancestor-or-self::div[contains(@class, "schUnschRmv") and not(contains(@style, "display: none;"))]]')
+	print('Unscheduling ' + str(len(unscheduleButtons)) + ' courses')
+
+	# Unschedules all Unregistered courses
+	for unscheduleButton in unscheduleButtons:
+		unscheduleButton.click()
+	print('Non-registered courses unscheduled')
+	print()
+
 def checkWebReg():
-	global driver
 	global classes
-	global availabilityAlertLink
 
-	while True:
-		st = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
-		print(st)
+	currentDateTime = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+	print(currentDateTime)
 
-		for c in classes:
-			if not c['completed']:
-				for sectionIndex, section in enumerate(c['sections']):
-					inPage = False
+	for c in classes:
+		if not c['completed']:
+			for sectionIndex, section in enumerate(c['sections']):
+				inPage = False
 
-					while not inPage:
+				while not inPage:
+					if not c['sectionInitialized'][sectionIndex]:
+						c['urls'][sectionIndex] = 'https://webreg.usc.edu/Courses?DeptId=' + c['deptCode'] + '&page=' + str(c['pages'][sectionIndex])
+
+					driver.get(c['urls'][sectionIndex])
+					html = driver.page_source
+
+					# Checks if the section number is on the page
+					if c['sectionInitialized'][sectionIndex] or ('<b>' + section in html):
+						inPage = True
+
 						if not c['sectionInitialized'][sectionIndex]:
-							c['urls'][sectionIndex] = 'https://webreg.usc.edu/Courses?DeptId=' + c['deptCode'] + '&page=' + str(c['pages'][sectionIndex])
+							# Matches the section and the letter after
+							c['sectionFullNames'][sectionIndex] = section + find_between(html, '<b>' + section, '</b>')
 
-						driver.get(c['urls'][sectionIndex])
-						sleep(3)
-						html = driver.page_source
+							if not c['initialized']:
+								# Parses full class name
+								classSectionsDiv = driver.find_element_by_xpath('//b[text() = "' + c['sectionFullNames'][sectionIndex] + '"]/../../../..')
+								classIndex = classSectionsDiv.get_attribute('id')
+								classDiv = driver.find_element_by_css_selector('a.course-title-indent[href="#' + classIndex + '"]')
+								c['classFullName'] = classDiv.get_attribute('innerText').strip()
 
-						# Checks if the section number is on the page
-						if c['sectionInitialized'][sectionIndex] or ('<b>' + section in html):
-							inPage = True
+								# Initialize
+								c['initialized'] = True
 
-							if not c['sectionInitialized'][sectionIndex]:
-								# Matches the section and the letter after
-								c['sectionFullNames'][sectionIndex] = section + find_between(html, '<b>' + section, '</b>')
+						# Matches the <div> of the session
+						sectionDiv = driver.find_element_by_xpath('//b[text() = "' + c['sectionFullNames'][sectionIndex] + '"]/../..')
+						sectionDivHtml = sectionDiv.get_attribute('innerText')
 
-								if not c['initialized']:
-									# Parses full class name
-									classSectionsDiv = driver.find_element_by_xpath('//b[text() = "' + c['sectionFullNames'][sectionIndex] + '"]/../../../..')
-									classIndex = classSectionsDiv.get_attribute('id')
-									classDiv = driver.find_element_by_css_selector('a.course-title-indent[href="#' + classIndex + '"]')
-									c['classFullName'] = classDiv.get_attribute('innerText').strip()
-
-									# Initialize
-									c['initialized'] = True
-
-							# Matches the <div> of the session
-							sectionDiv = driver.find_element_by_xpath('//b[text() = "' + c['sectionFullNames'][sectionIndex] + '"]/../..')
-							sectionDivHtml = sectionDiv.get_attribute('innerText')
-
-							# Get the HTML of the sectionDiv
-							if not c['sectionInitialized'][sectionIndex]:
-								# Parses section type
-								c['types'][sectionIndex] = find_between(sectionDivHtml, 'Type: ', '\n').strip()
-								# Parses section units
-								c['units'][sectionIndex] = find_between(sectionDivHtml, 'Units: ', '\n').strip()
-								# Parses section days
-								c['days'][sectionIndex] = find_between(sectionDivHtml, 'Days: ', '\n').strip()
-								# Parses section time
-								c['times'][sectionIndex] = find_between(sectionDivHtml, 'Time: ', '\n').strip()
-								# Parses section instructor
-								c['instructors'][sectionIndex] = find_between(sectionDivHtml, 'Instructor: ', '\n').strip()
-								# Parses section location
-								c['locations'][sectionIndex] = find_between(sectionDivHtml, 'Location: ', '\n').strip()
-								# Set sectionInitialized
-								c['sectionInitialized'][sectionIndex] = True
-							# Parses class availbility
-							c['availabilities'][sectionIndex] = find_between(sectionDivHtml, 'Registered: ', '\n').strip()
-						else:
-							c['pages'][sectionIndex] += 1
-					processSection(c, sectionIndex)
-				processClass(c)
-		sleep(interval)
+						# Get the HTML of the sectionDiv
+						if not c['sectionInitialized'][sectionIndex]:
+							# Parses section type
+							c['types'][sectionIndex] = find_between(sectionDivHtml, 'Type: ', '\n').strip()
+							# Parses section units
+							c['units'][sectionIndex] = find_between(sectionDivHtml, 'Units: ', '\n').strip()
+							# Parses section days
+							c['days'][sectionIndex] = find_between(sectionDivHtml, 'Days: ', '\n').strip()
+							# Parses section time
+							c['times'][sectionIndex] = find_between(sectionDivHtml, 'Time: ', '\n').strip()
+							# Parses section instructor
+							c['instructors'][sectionIndex] = find_between(sectionDivHtml, 'Instructor: ', '\n').strip()
+							# Parses section location
+							c['locations'][sectionIndex] = find_between(sectionDivHtml, 'Location: ', '\n').strip()
+							# Set sectionInitialized
+							c['sectionInitialized'][sectionIndex] = True
+						# Parses class availbility
+						c['availabilities'][sectionIndex] = find_between(sectionDivHtml, 'Registered: ', '\n').strip()
+					else:
+						c['pages'][sectionIndex] += 1
+				processSection(c, sectionIndex)
+			processClass(c)
+	if courseCountdown == 0:
+		handleCompletion()
+	else:
 		print()
-
-def find_between(s, first, last):
-	try:
-		start = s.index( first ) + len( first )
-		end = s.index( last, start )
-		return s[start:end]
-	except ValueError:
-		return ''
+		sleep(interval)
+		checkWebReg()
 
 def processSection(c, sectionIndex):
-		classMetaFormatted = c['classFullName'] + ' ' + c['sectionFullNames'][sectionIndex] + ' ' + c['types'][sectionIndex] + ' (' + c['instructors'][sectionIndex] + ') [' + c['days'][sectionIndex] + ' / ' + c['times'][sectionIndex] + '] - ' + c['availabilities'][sectionIndex]
-		if c['availabilities'][sectionIndex] != 'Closed' and c['availabilities'][sectionIndex] != 'Canceled':
-			print('\033[92m' + '\033[1m' + classMetaFormatted + '\033[0m' + '\033[0m')
-		else:
-			print(classMetaFormatted)
+	classMetaFormatted = c['classFullName'] + ' ' + c['sectionFullNames'][sectionIndex] + ' ' + c['types'][sectionIndex] + ' (' + c['instructors'][sectionIndex] + ') [' + c['days'][sectionIndex] + ' / ' + c['times'][sectionIndex] + '] - ' + c['availabilities'][sectionIndex]
+
+	if c['availabilities'][sectionIndex] != 'Closed' and c['availabilities'][sectionIndex] != 'Canceled':
+		print('\033[92m' + '\033[1m' + classMetaFormatted + '\033[0m' + '\033[0m')
+	else:
+		print(classMetaFormatted)
 
 def processClass(c):
+	global courseCountdown
 	canRegister = True
 
 	for sectionIndex, section in enumerate(c['sections']):
@@ -317,20 +321,46 @@ def processClass(c):
 			canRegister = False
 
 	if canRegister:
+		courseCountdown -= 1
 		c['completed'] = True
+
 		webbrowser.open(availabilityAlertLink)
+
 		if autocheckout and c['checkout']:
 			checkout(c)
 
 def checkout(c):
-	global driver
 	print('Redirecting to myCourseBin')
 	driver.get('https://webreg.usc.edu/myCourseBin')
+
+	print('Expanding all courses')
+	driver.find_element_by_id('expandAll').click()
+
 	for section in c['sections']:
-		sectionRegisterButton = driver.find_element_by_xpath('//a[@href = "/myCoursebin/SchdUnschRmv?act=Sched&section=' + section + '"]')
-		sectionRegisterButton.click()
+		driver.find_element_by_xpath('//a[@href = "/myCoursebin/SchdUnschRmv?act=Sched&section=' + section + '"]').click()
+
+	print('Checking out')
+
 	driver.get('https://webreg.usc.edu/Register')
-	driver.find_element_by_id('SubmitButton').click()
+	submitButton = wait.until(lambda d: d.find_element_by_id("SubmitButton"))
+	submitButton.click()
+
+	print('Checked out')
+
+def find_between(s, first, last):
+	try:
+		start = s.index(first) + len(first)
+		end = s.index(last, start)
+		return s[start:end]
+	except ValueError:
+		return ''
+
+def handleCompletion():
+	currentDateTime = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+
+	print()
+	print('Completed at ' + currentDateTime)
+	handleQuit()
 
 def handleSIGINT(sig, frame):
 	print()
@@ -339,13 +369,31 @@ def handleSIGINT(sig, frame):
 
 def handleQuit():
 	global driver
+
 	if driver != None:
 		print('Closing Selenium driver')
+		driver.service.process.send_signal(signal.SIGTERM)
 		driver.quit()
+	print()
 	quit()
+
+def configure():
+	global fileAuthorization
+	global username
+	global password
+
+	args = parser.parse_args()
+
+	# File Authorization
+	if args.i:
+		lines = args.i.readlines()
+		fileAuthorization = True
+		username = lines[0].strip()
+		password = lines[1].strip()
 
 if __name__ == '__main__':
 	try:
+		configure()
 		main()
 	except KeyboardInterrupt as e:
 		print()
