@@ -7,7 +7,8 @@ term = 20191
 autocheckout = False
 
 # Link to open if a class is detected as open
-availabilityAlertLink = 'https://www.youtube.com/watch?v=4pUc7SD0PmU'
+triggerAvailabilityAlert = False
+availabilityAlertLink = 'https://www.youtube.com/watch?v=2HtiqkDpzSs'
 
 # Time (seconds) between checks
 interval = 30
@@ -18,8 +19,12 @@ timeout = 10
 # Classes list
 classes = [
 	{
-		'class': 'BISC102',
-		'sections': ('13000', '13102'),
+		'class': 'CSCI270',
+		'sections': ('30094',),
 		'checkout': False
 	}
 ]
+
+# For custom emails
+emailTemplateFile = 'emailTemplate.html'
+sectionTemplateFile = 'sectionTemplate.html'

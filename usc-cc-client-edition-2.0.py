@@ -17,24 +17,29 @@ import getpass
 import webbrowser
 from pathlib import Path
 
-fileAuthorization = False
 username = ''
 password = ''
 driver = None
+driverType = ''
 unschedule = False
-
 wait = None
+
+# Configuration Options
+options = { }
 
 courseCountdown = 0
 
 parser = argparse.ArgumentParser(description = 'USC CC V2.0')
 parser.add_argument('-i', type = argparse.FileType('r'), help = 'provide file authorization - username on first line, password on second line')
+parser.add_argument('--lite', action = 'store_true', help = 'lite mode')
+parser.add_argument('--pi', action = 'store_true', help = 'currenlty hosted on raspberry pi')
 
 def main():
 	global classes
 	global driver
 	global wait
 	global courseCountdown
+	global driverType
 
 	# Print app name
 	print()
@@ -49,41 +54,47 @@ def main():
 	print()
 
 	# Initialize Driver
-	driverType = ''
 	hasChromeDriver = False
 	hasGeckoDriver = False
 
-	chromeDriverFile = Path(r'./chromedriver')
-	if chromeDriverFile.is_file():
-		hasChromeDriver = True
-		print('chromedriver placed in project directory')
+	if options['onPi']:
+		from pyvirtualdisplay import Display
+		display = Display(visible = 0, size = (800, 600))
+		display.start()
 
-
-	geckoDriverFile = Path(r'./geckodriver')
-	if geckoDriverFile.is_file():
-		hasGeckoDriver = True
-		print('geckodriver placed in project directory')
-
-	if hasChromeDriver:
-		# Chrome
-		chrome_options = webdriver.ChromeOptions()
-		chrome_options.add_argument('--headless')
-		driver = webdriver.Chrome(executable_path = r'./chromedriver', options = chrome_options)
-		driverType = 'chromedriver'
-	elif hasGeckoDriver:
-		# Firefox
+		# Pi Firefox
 		firefox_options = webdriver.FirefoxOptions()
 		firefox_options.add_argument('--headless')
-		driver = webdriver.Firefox(executable_path = r'./geckodriver', options = firefox_options)
+		firefox_options.add_argument('--disable-gpu')
+		driver = webdriver.Firefox(options = firefox_options)
 		driverType = 'geckodriver'
 	else:
-		print('Please place either chromedriver or geckodriver into this directory')
-		handleQuit()
-		# Default to Chrome, but don't specify executable_path
-		# chrome_options = webdriver.ChromeOptions()
-		# chrome_options.add_argument('--headless')
-		# driver = webdriver.Chrome(options = chrome_options)
-		# driverType = 'chromedriver'
+		chromeDriverFile = Path(r'./chromedriver')
+		if chromeDriverFile.is_file():
+			hasChromeDriver = True
+
+		geckoDriverFile = Path(r'./geckodriver')
+		if geckoDriverFile.is_file():
+			hasGeckoDriver = True
+
+		if hasChromeDriver:
+			# Chrome
+			chrome_options = webdriver.ChromeOptions()
+			chrome_options.add_argument('--headless')
+			driver = webdriver.Chrome(executable_path = r'./chromedriver', options = chrome_options)
+			driverType = 'chromedriver'
+		elif hasGeckoDriver:
+			# Firefox
+			firefox_options = webdriver.FirefoxOptions()
+			firefox_options.add_argument('--headless')
+			driver = webdriver.Firefox(executable_path = r'./geckodriver', options = firefox_options)
+			driverType = 'geckodriver'
+		else:
+			# Default to Chrome, but don't specify executable_path
+			chrome_options = webdriver.ChromeOptions()
+			chrome_options.add_argument('--headless')
+			driver = webdriver.Chrome(options = chrome_options)
+			driverType = 'chromedriver'
 
 	driver.set_page_load_timeout(timeout)
 	wait = WebDriverWait(driver, timeout)
@@ -115,11 +126,10 @@ def main():
 
 		c.pop('class', None)
 	courseCountdown = len(classes)
-	print('Prepared classes')
 	print()
 
 	# Get user authentication details
-	if fileAuthorization:
+	if options['fileAuthorization']:
 		attemptTry()
 	else:
 		getUSCID()
@@ -190,22 +200,36 @@ def login():
 
 	# Login to USC Shibboleth
 	print('Logging into USC Shibboleth as \033[4m' + username + '\033[0m')
+
+	if driverType == 'geckodriver':
+		sleep(timeout * 0.8)
+
 	driver.find_element_by_name('j_username').send_keys(username)
 	driver.find_element_by_name('j_password').send_keys(password)
 	driver.find_element_by_name('_eventId_proceed').click()
 
-	# Just need to wait for the page to reload - so choose body tag
-	wait.until(lambda d: d.find_element_by_css_selector('html'))
+	if driverType == 'geckodriver':
+		sleep(timeout * 0.8)
+	else:
+		# Just need to wait for the page to reload - so choose body tag
+		wait.until(lambda d: d.find_element_by_css_selector('body'))
 
 	# Confirm URL
 	if driver.current_url == 'https://my.usc.edu/':
 		print('Login successful')
 	else:
-		print()
-		print('Login failed')
-		print('Please verify your login information')
-		print()
-		getUSCID()
+		if options['fileAuthorization']:
+			print()
+			print('Login failed - Retrying')
+			print()
+			attemptTry()
+
+		else:
+			print()
+			print('Login failed')
+			print('Please verify your login information')
+			print()
+			getUSCID()
 
 def redirectToTerm():
 	# Redirect to USC Web Registration
@@ -238,8 +262,7 @@ def unscheduleNonRegisteredCourses():
 def checkWebReg():
 	global classes
 
-	currentDateTime = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
-	print(currentDateTime)
+	printCurrentDateTime()
 
 	for c in classes:
 		if not c['completed']:
@@ -297,20 +320,44 @@ def checkWebReg():
 						c['pages'][sectionIndex] += 1
 				processSection(c, sectionIndex)
 			processClass(c)
+
 	if courseCountdown == 0:
-		handleCompletion()
-	else:
 		print()
+		handleCompletion()
+
+	else:
+		if not options['liteMode']:
+			print()
 		sleep(interval)
 		checkWebReg()
 
-def processSection(c, sectionIndex):
-	classMetaFormatted = c['classFullName'] + ' ' + c['sectionFullNames'][sectionIndex] + ' ' + c['types'][sectionIndex] + ' (' + c['instructors'][sectionIndex] + ') [' + c['days'][sectionIndex] + ' / ' + c['times'][sectionIndex] + '] - ' + c['availabilities'][sectionIndex]
+def printCurrentDateTime():
+	currentDateTime = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
 
-	if c['availabilities'][sectionIndex] != 'Closed' and c['availabilities'][sectionIndex] != 'Canceled':
-		print('\033[92m' + '\033[1m' + classMetaFormatted + '\033[0m' + '\033[0m')
+	if options['liteMode']:
+		print(currentDateTime + ' | ', end = '')
 	else:
-		print(classMetaFormatted)
+		print(currentDateTime)
+
+def processSection(c, sectionIndex):
+	if options['liteMode']:
+		if sectionIndex == 0:
+			print(c['deptCode'] + c['classCode'] + ':[', end = '')
+
+		if c['availabilities'][sectionIndex] != 'Closed' and c['availabilities'][sectionIndex] != 'Canceled':
+			print('\033[92m' + '\033[1m' + c['sections'][sectionIndex] + '\033[0m' + '\033[0m', end = '')
+		else:
+			print(c['sections'][sectionIndex], end = '')
+
+		if sectionIndex == len(c['sections']) - 1:
+			print(']', end = '')
+	else:
+		classMetaFormatted = c['classFullName'] + ' ' + c['sectionFullNames'][sectionIndex] + ' ' + c['types'][sectionIndex] + ' (' + c['instructors'][sectionIndex] + ') [' + c['days'][sectionIndex] + ' / ' + c['times'][sectionIndex] + '] - ' + c['availabilities'][sectionIndex]
+
+		if c['availabilities'][sectionIndex] != 'Closed' and c['availabilities'][sectionIndex] != 'Canceled':
+			print('\033[92m' + '\033[1m' + classMetaFormatted + '\033[0m' + '\033[0m')
+		else:
+			print(classMetaFormatted)
 
 def processClass(c):
 	global courseCountdown
@@ -324,7 +371,8 @@ def processClass(c):
 		courseCountdown -= 1
 		c['completed'] = True
 
-		webbrowser.open(availabilityAlertLink)
+		if triggerAvailabilityAlert:
+			webbrowser.open(availabilityAlertLink)
 
 		if autocheckout and c['checkout']:
 			checkout(c)
@@ -342,7 +390,15 @@ def checkout(c):
 	print('Checking out')
 
 	driver.get('https://webreg.usc.edu/Register')
-	submitButton = wait.until(lambda d: d.find_element_by_id("SubmitButton"))
+
+	submitButton = None
+
+	if driverType == 'geckodriver':
+		sleep(timeout * 0.8)
+		submitButton = driver.find_element_by_id("SubmitButton")
+	else:
+		submitButton = wait.until(lambda d: d.find_element_by_id("SubmitButton"))
+
 	submitButton.click()
 
 	print('Checked out')
@@ -356,10 +412,10 @@ def find_between(s, first, last):
 		return ''
 
 def handleCompletion():
-	currentDateTime = datetime.datetime.fromtimestamp(time()).strftime('%Y-%m-%d %H:%M:%S')
+	printCurrentDateTime()
 
 	print()
-	print('Completed at ' + currentDateTime)
+	print('Completed')
 	handleQuit()
 
 def handleSIGINT(sig, frame):
@@ -372,24 +428,40 @@ def handleQuit():
 
 	if driver != None:
 		print('Closing Selenium driver')
-		driver.service.process.send_signal(signal.SIGTERM)
-		driver.quit()
+		try:
+			driver.close()
+			driver.quit()
+			driver.dispose()
+		except:
+			pass
+		# driver.service.process.send_signal(signal.SIGTERM)
 	print()
 	quit()
 
 def configure():
-	global fileAuthorization
+	global options
 	global username
 	global password
+
+	# Default Options
+	options = {
+		'fileAuthorization': False,
+		'liteMode': False,
+		'onPi': False
+	}
 
 	args = parser.parse_args()
 
 	# File Authorization
 	if args.i:
+		options['fileAuthorization'] = True
 		lines = args.i.readlines()
-		fileAuthorization = True
 		username = lines[0].strip()
 		password = lines[1].strip()
+	if args.lite:
+		options['liteMode'] = True
+	if args.pi:
+		options['onPi'] = True
 
 if __name__ == '__main__':
 	try:
