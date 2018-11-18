@@ -25,9 +25,8 @@ The bottom image shows the script detecting that both a Lecture and a Lab sectio
 
 ## Dependencies
 * Selenium
-* chromedriver **or**
+* chromedriver **or** geckodriver
 	* [http://chromedriver.chromium.org/](http://chromedriver.chromium.org/)
-* geckodriver
 	* [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
 
 ### Selenium
@@ -35,7 +34,7 @@ Selenium is the only package that should be installed with a package manager suc
 
 If you already have PIP installed, the first command can be skipped.
 
-```Shell
+```console
 $ sudo easy_install pip
 $ pip install -U selenium
 ```
@@ -52,7 +51,7 @@ Run the following command in Terminal. This assumes you have already navigated i
 
 Conversely, you can type `python3 ` into the Terminal then drag and drop `usc-cc-client-edition-2.0.py` into the Terminal window.
 
-```Shell
+```console
 $ python3 usc-cc-client-edition-2.0.py
 ```
 
